@@ -38,6 +38,8 @@ extra["springAiVersion"] = "2.0.0-M3"
 extra["springCloudVersion"] = "2025.1.1"
 extra["springGrpcVersion"] = "1.0.2"
 extra["springModulithVersion"] = "2.0.3"
+extra["jjwtVersion"] = "0.12.6"
+extra["exposedVersion"] = "0.59.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-rest")
@@ -60,6 +62,19 @@ dependencies {
     implementation("org.springframework.grpc:spring-grpc-server-web-spring-boot-starter")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("tools.jackson.module:jackson-module-kotlin")
+    // Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    // JWT
+    implementation("io.jsonwebtoken:jjwt-api:${property("jjwtVersion")}")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:${property("jjwtVersion")}")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:${property("jjwtVersion")}")
+    // Exposed ORM + SQLite
+    implementation("org.jetbrains.exposed:exposed-core:${property("exposedVersion")}")
+    implementation("org.jetbrains.exposed:exposed-dao:${property("exposedVersion")}")
+    implementation("org.jetbrains.exposed:exposed-jdbc:${property("exposedVersion")}")
+    implementation("org.jetbrains.exposed:exposed-java-time:${property("exposedVersion")}")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:${property("exposedVersion")}")
+    implementation("org.xerial:sqlite-jdbc")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
