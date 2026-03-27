@@ -47,7 +47,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-webclient")
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-webservices")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
@@ -56,9 +55,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
-    implementation("org.springframework.ai:spring-ai-starter-mcp-server-webflux")
     implementation("org.springframework.ai:spring-ai-starter-model-openai")
-    implementation("org.springframework.ai:spring-ai-starter-model-openai-sdk")
     implementation("org.springframework.grpc:spring-grpc-client-spring-boot-starter")
     implementation("org.springframework.grpc:spring-grpc-server-web-spring-boot-starter")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
@@ -78,13 +75,11 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-security-oauth2-client-test")
     testImplementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webservices-test")
     testImplementation("org.springframework.boot:spring-boot-starter-websocket-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("com.unboundid:unboundid-ldapsdk")
-    testImplementation("io.rest-assured:spring-web-test-client")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.springframework.ai:spring-ai-spring-boot-testcontainers")
@@ -120,6 +115,7 @@ tasks.generateJava {
 
 contracts {
     testMode = TestMode.WEBTESTCLIENT
+    failOnNoContracts = false
 }
 
 protobuf {
@@ -144,6 +140,7 @@ protobuf {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    systemProperty("spring.profiles.active", "local")
 }
 
 tasks.contractTest {
