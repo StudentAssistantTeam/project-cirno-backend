@@ -1,0 +1,6 @@
+# Mock configuration for local development and CI/testing.
+# The api-key below is a placeholder — replace with a real key for actual OpenAI API usage.
+spring:
+  ai:
+    openai:
+      api-key: sk-mock-key-for-testing
