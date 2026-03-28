@@ -55,6 +55,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     // Spring AI — OpenAI-compatible LLM integration (Mimo API)
     implementation("org.springframework.ai:spring-ai-starter-model-openai")
+    // Google ADK — Agent Development Kit
+    implementation("com.google.adk:google-adk:1.0.0-rc.1")
+    implementation("com.google.adk:google-adk-spring-ai:1.0.0-rc.1")
     implementation("io.grpc:grpc-services")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -125,7 +128,7 @@ dependencyManagement {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property", "-java-parameters")
     }
 }
 
