@@ -624,10 +624,15 @@ List the authenticated user's error records. Requires authentication. Supports o
 | `tag`      | String | Filter by tag name (case-insensitive) |
 | `dateFrom` | String | Filter errors with date >= this ISO 8601 datetime |
 | `dateTo`   | String | Filter errors with date < this ISO 8601 datetime |
+| `keywords` | String | Comma-separated keywords. Returns errors where ANY keyword matches as a case-insensitive substring in the description OR as a case-insensitive exact match in any tag. |
 
 **Example:** `GET /api/errorbook?tag=physics&dateFrom=2026-03-01T00:00:00&dateTo=2026-04-01T00:00:00`
 
 Returns all physics errors from March 2026.
+
+**Example with keywords:** `GET /api/errorbook?keywords=suvat,kinematics`
+
+Returns any error whose description contains "suvat" or "kinematics" (case-insensitive substring), or has a tag named "suvat" or "kinematics".
 
 **Response (200 OK):**
 

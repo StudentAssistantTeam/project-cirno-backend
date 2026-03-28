@@ -59,11 +59,16 @@ class ErrorBookController(
         @RequestParam(required = false) tag: String?,
         @RequestParam(required = false) dateFrom: String?,
         @RequestParam(required = false) dateTo: String?,
+        @RequestParam(required = false) keywords: String?,
         principal: Principal
     ): ResponseEntity<Any> {
         try {
             val userId = resolveUserId(principal)
-            val errors = errorBookService.findAll(userId, tag, dateFrom, dateTo)
+            val keywordList = keywords
+                ?.split(",")
+                ?.map { it.trim() }
+                ?.filter { it.isNotBlank() }
+            val errors = errorBookService.findAll(userId, tag, dateFrom, dateTo, keywordList)
             return ResponseEntity.ok(mapOf("errors" to errors))
         } catch (e: IllegalArgumentException) {
             return ResponseEntity.badRequest().body(mapOf("error" to e.message))

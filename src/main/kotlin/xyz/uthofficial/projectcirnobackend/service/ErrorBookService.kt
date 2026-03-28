@@ -71,10 +71,10 @@ class ErrorBookService(
         return toResponse(record)
     }
 
-    fun findAll(userId: UUID, tag: String?, dateFrom: String?, dateTo: String?): List<ErrorBookResponse> {
+    fun findAll(userId: UUID, tag: String?, dateFrom: String?, dateTo: String?, keywords: List<String>? = null): List<ErrorBookResponse> {
         val from = parseDate(dateFrom)
         val to = parseDate(dateTo)
-        return errorBookRepository.findAll(userId, tag, from, to).map { toResponse(it) }
+        return errorBookRepository.findAll(userId, tag, from, to, keywords).map { toResponse(it) }
     }
 
     fun update(

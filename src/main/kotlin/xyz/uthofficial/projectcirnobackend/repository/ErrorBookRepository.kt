@@ -110,7 +110,13 @@ class ErrorBookRepository {
         )
     }
 
-    fun findAll(userId: UUID, tag: String?, dateFrom: LocalDateTime?, dateTo: LocalDateTime?): List<ErrorBookRecord> =
+    fun findAll(
+        userId: UUID,
+        tag: String?,
+        dateFrom: LocalDateTime?,
+        dateTo: LocalDateTime?,
+        keywords: List<String>? = null
+    ): List<ErrorBookRecord> =
         transaction {
             val query = ErrorBooks.selectAll()
                 .andWhere { ErrorBooks.user eq userId }
@@ -141,11 +147,20 @@ class ErrorBookRepository {
                 )
             }
         }.let { records ->
+            var filtered = records
             if (tag != null) {
-                records.filter { it.tags.any { t -> t.equals(tag, ignoreCase = true) } }
-            } else {
-                records
+                filtered = filtered.filter { it.tags.any { t -> t.equals(tag, ignoreCase = true) } }
             }
+            if (!keywords.isNullOrEmpty()) {
+                val cleanKeywords = keywords.map { it.trim().lowercase() }.filter { it.isNotBlank() }
+                filtered = filtered.filter { record ->
+                    cleanKeywords.any { kw ->
+                        record.description?.lowercase()?.contains(kw) == true ||
+                        record.tags.any { t -> t.lowercase() == kw }
+                    }
+                }
+            }
+            filtered
         }
 
     fun update(
