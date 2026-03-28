@@ -197,6 +197,67 @@ Events are sorted by datetime in ascending order.
 
 ---
 
+### `PUT /api/events/{id}`
+
+Update an existing event. Requires authentication. Only the event's owner can update it.
+
+**Request:**
+
+Same format as `POST /api/events`. Tags are fully replaced by the new list.
+
+```json
+{
+  "name": "Updated Study Session",
+  "datetime": "2026-04-01T15:00:00",
+  "description": "Updated description",
+  "tags": ["math", "review"]
+}
+```
+
+| Field       | Rules |
+|-------------|-------|
+| name        | Required, max 255 characters |
+| datetime    | Required, ISO 8601 format (`YYYY-MM-DDTHH:mm:ss`) |
+| description | Optional, free text |
+| tags        | Optional, list of tag name strings (each max 50 characters). Existing tags are reused; the event's tag associations are replaced entirely. |
+
+**Response (200 OK):**
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Updated Study Session",
+  "datetime": "2026-04-01T15:00:00",
+  "description": "Updated description",
+  "tags": ["math", "review"],
+  "createdAt": "2026-03-28T10:00:00"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — event not found, event belongs to another user, or invalid input
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `DELETE /api/events/{id}`
+
+Delete an event and its tag associations. Requires authentication. Only the event's owner can delete it.
+
+**Response (200 OK):**
+
+```json
+{ "message": "Event deleted" }
+```
+
+**Errors:**
+
+- `400 Bad Request` — event not found or event belongs to another user
+- `403 Forbidden` — no JWT token provided
+
+---
+
 ### `GET /api/health`
 
 Unauthenticated health check. Use this to verify server reachability.
