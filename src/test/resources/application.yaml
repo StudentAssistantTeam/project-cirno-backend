@@ -2,7 +2,7 @@ spring:
   application:
     name: project-cirno-backend
   datasource:
-    url: jdbc:sqlite:cirno.db
+    url: "jdbc:sqlite::memory:"
     driver-class-name: org.sqlite.JDBC
 
 app:
@@ -12,4 +12,3 @@ app:
   cors:
     allowed-origins:
       - http://localhost:3000
-      - http://64.49.47.22:57177

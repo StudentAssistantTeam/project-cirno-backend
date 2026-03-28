@@ -35,6 +35,7 @@ repositories {
 
 extra["snippetsDir"] = file("build/generated-snippets")
 
+extra["springAiVersion"] = "1.0.0"
 extra["springCloudVersion"] = "2025.1.1"
 extra["springGrpcVersion"] = "1.0.2"
 extra["springModulithVersion"] = "2.0.3"
@@ -113,6 +114,7 @@ dependencies {
 dependencyManagement {
     imports {
         mavenBom("org.springframework.modulith:spring-modulith-bom:${property("springModulithVersion")}")
+        mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
 
         mavenBom("org.springframework.grpc:spring-grpc-dependencies:${property("springGrpcVersion")}")
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
