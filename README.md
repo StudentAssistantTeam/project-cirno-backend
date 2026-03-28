@@ -563,3 +563,226 @@ Omitted fields are left unchanged.
 
 - `400 Bad Request` — no fields provided, invalid field values, or identity not found (use POST to create)
 - `403 Forbidden` — no JWT token or invalid token provided
+
+---
+
+## Errorbook
+
+Records academic errors for tracking weak areas and revision. Each error must have at least a **description** (markdown) or an **image**. Tags are shared with events (reuses the same `tags` table).
+
+### `POST /api/errorbook`
+
+Create a new error record. Requires authentication. Images are uploaded separately via `POST /api/errorbook/{id}/image`.
+
+**Request:**
+
+```json
+{
+  "description": "## Mistake\nForgot to apply the SUVAT equations correctly for non-uniform acceleration.\n\n**Correct approach:** use v² = u² + 2as only when a is constant.",
+  "tags": ["physics", "mechanics", "suvat"],
+  "date": "2026-03-29T14:00:00"
+}
+```
+
+| Field       | Rules |
+|-------------|-------|
+| description | Optional (but at least one of description or image must be provided), markdown text, max 50000 characters |
+| tags        | Optional, list of tag name strings (each trimmed, deduplicated, max 50). Reuses existing tags. |
+| date        | Optional, ISO 8601 datetime. If set, links to an event on that date. |
+| eventId     | Optional, UUID of an existing event to link this error to. |
+
+**Response (201 Created):**
+
+```json
+{
+  "id": "660e8400-e29b-41d4-a716-446655440000",
+  "description": "## Mistake\nForgot to apply...",
+  "imagePath": null,
+  "date": "2026-03-29T14:00:00",
+  "eventId": null,
+  "tags": ["physics", "mechanics", "suvat"],
+  "createdAt": "2026-03-29T14:05:00",
+  "updatedAt": "2026-03-29T14:05:00"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — missing both description and image, invalid date format, or invalid field values
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `GET /api/errorbook`
+
+List the authenticated user's error records. Requires authentication. Supports optional filtering.
+
+**Query Parameters:**
+
+| Parameter  | Type   | Description |
+|------------|--------|-------------|
+| `tag`      | String | Filter by tag name (case-insensitive) |
+| `dateFrom` | String | Filter errors with date >= this ISO 8601 datetime |
+| `dateTo`   | String | Filter errors with date < this ISO 8601 datetime |
+
+**Example:** `GET /api/errorbook?tag=physics&dateFrom=2026-03-01T00:00:00&dateTo=2026-04-01T00:00:00`
+
+Returns all physics errors from March 2026.
+
+**Response (200 OK):**
+
+```json
+{
+  "errors": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440000",
+      "description": "## Mistake\nForgot to apply...",
+      "imagePath": "uploads/errorbook/abc123-screenshot.png",
+      "date": "2026-03-29T14:00:00",
+      "eventId": null,
+      "tags": ["physics", "mechanics"],
+      "createdAt": "2026-03-29T14:05:00",
+      "updatedAt": "2026-03-29T14:05:00"
+    }
+  ]
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — invalid date format for query parameters
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `GET /api/errorbook/{id}`
+
+Retrieve a single error record by ID. Requires authentication. Only the owner can view their errors.
+
+**Response (200 OK):**
+
+```json
+{
+  "id": "660e8400-e29b-41d4-a716-446655440000",
+  "description": "## Mistake\nForgot to apply...",
+  "imagePath": null,
+  "date": "2026-03-29T14:00:00",
+  "eventId": null,
+  "tags": ["physics", "mechanics"],
+  "createdAt": "2026-03-29T14:05:00",
+  "updatedAt": "2026-03-29T14:05:00"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — error record not found or belongs to another user
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `PATCH /api/errorbook/{id}`
+
+Partial update of an error record. Requires authentication. Only provided fields are updated; tags are fully replaced if given.
+
+**Request:**
+
+```json
+{
+  "description": "## Updated Mistake\nClarified the correct SUVAT approach.",
+  "tags": ["physics", "kinematics"]
+}
+```
+
+| Field       | Rules |
+|-------------|-------|
+| description | Optional, markdown text, max 50000 characters |
+| tags        | Optional, list of tag names (replaces all existing tags) |
+| date        | Optional, ISO 8601 datetime |
+| eventId     | Optional, UUID of event to link to |
+
+**Response (200 OK):**
+
+Returns the updated error record.
+
+**Errors:**
+
+- `400 Bad Request` — error record not found or invalid input
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `DELETE /api/errorbook/{id}`
+
+Delete an error record, its tag associations, and any attached image file. Requires authentication.
+
+**Response (200 OK):**
+
+```json
+{ "message": "Error record deleted" }
+```
+
+**Errors:**
+
+- `400 Bad Request` — error record not found or belongs to another user
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `POST /api/errorbook/{id}/image`
+
+Upload an image for an existing error record. Requires authentication. Replaces any previously uploaded image.
+
+**Request:**
+
+`Content-Type: multipart/form-data` with a `file` field containing the image.
+
+| Field  | Rules |
+|--------|-------|
+| file   | Required, must be an image (`image/*` content type) |
+
+**Response (201 Created):**
+
+```json
+{
+  "message": "Image uploaded",
+  "path": "uploads/errorbook/550e8400-screenshot.png"
+}
+```
+
+Images are stored locally in `uploads/errorbook/` with a UUID-prefixed filename to avoid collisions.
+
+**Errors:**
+
+- `400 Bad Request` — error record not found, file is empty, or file is not an image
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `GET /api/errorbook/{id}/image`
+
+Retrieve the image attached to an error record. Requires authentication. Returns the raw image bytes with the appropriate `Content-Type`.
+
+**Response (200 OK):**
+
+Binary image data with `Content-Type: image/png` (or the detected type).
+
+**Errors:**
+
+- `400 Bad Request` — error record not found
+- `403 Forbidden` — no JWT token provided
+- `404 Not Found` — no image attached, or image file missing from disk
+
+---
+
+### AI Tools
+
+The Cirno AI assistant can manage error records through conversation. Available tools:
+
+| Tool | Description |
+|------|-------------|
+| `createErrorRecord` | Record a new error with markdown description, optional tags, and optional date |
+| `updateErrorRecord` | Update an existing error's description, tags, or date |
+| `deleteErrorRecord` | Delete an error record by ID |
+
+Recent errors are embedded in the system prompt so Cirno can reference them when scheduling revision or identifying weak areas.

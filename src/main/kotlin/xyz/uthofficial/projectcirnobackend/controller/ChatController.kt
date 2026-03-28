@@ -16,6 +16,8 @@ import xyz.uthofficial.projectcirnobackend.repository.EventRepository
 import xyz.uthofficial.projectcirnobackend.repository.UserRepository
 import xyz.uthofficial.projectcirnobackend.service.ChatSessionService
 import xyz.uthofficial.projectcirnobackend.service.EventTools
+import xyz.uthofficial.projectcirnobackend.service.ErrorBookService
+import xyz.uthofficial.projectcirnobackend.service.ErrorBookTools
 import xyz.uthofficial.projectcirnobackend.service.UserIdentityService
 import xyz.uthofficial.projectcirnobackend.service.UserIdentityTools
 import java.security.Principal
@@ -30,7 +32,8 @@ class ChatController(
     private val chatSessionService: ChatSessionService,
     private val eventRepository: EventRepository,
     private val userRepository: UserRepository,
-    private val userIdentityService: UserIdentityService
+    private val userIdentityService: UserIdentityService,
+    private val errorBookService: ErrorBookService
 ) {
 
     private fun buildSystemPrompt(userId: UUID): SystemMessage {
@@ -47,6 +50,12 @@ class ChatController(
             You MUST NOT assume anything about who they are or what they need.
             You MUST conduct the onboarding protocol (see §2 below) before
             making any scheduling decisions or study plans.
+        """.trimIndent()
+
+        val errorSummary = errorBookService.getRecentErrorsSummary(userId)
+        val errorBlock = """
+            ## Recent Error Records
+            $errorSummary
         """.trimIndent()
 
         return SystemMessage(
@@ -68,6 +77,8 @@ class ChatController(
 
             $profileBlock
 
+            $errorBlock
+
             ## Capabilities
             You have access to the following tools:
 
@@ -82,6 +93,15 @@ class ChatController(
               (e.g. "Year 12 student") and their goal (e.g. "A* in Further Maths
               and a place at Cambridge"). You can save this via the provided tool.
             - **Update profile** — the user can change their identity or goal at any time.
+
+            ### Errorbook Management
+            - **Record errors** — when the user makes a mistake (e.g. a wrong answer on a past paper),
+              record it with a markdown description, tags (subject, topic, difficulty), and optionally
+              the date it occurred. Use this to track recurring weak areas.
+            - **Update error records** — edit descriptions, tags, or dates of existing records.
+            - **Delete error records** — remove records that are no longer relevant.
+            - **Review errors** — the system provides a summary of recent errors in the context,
+              so you can reference them when scheduling revision or identifying weak topics.
 
             ## Behaviour Guidelines
 
@@ -169,6 +189,7 @@ class ChatController(
 
         val eventTools = EventTools(eventRepository, userRepository, principal.name)
         val userIdentityTools = UserIdentityTools(userIdentityService, userRepository, principal.name)
+        val errorBookTools = ErrorBookTools(errorBookService, userRepository, principal.name)
 
         val messages: MutableList<Message> = mutableListOf(buildSystemPrompt(userId))
         messages.addAll(history)
@@ -180,7 +201,7 @@ class ChatController(
         return ChatClient.create(chatModel)
             .prompt(Prompt(messages))
             .user(request.message)
-            .tools(eventTools, userIdentityTools)
+            .tools(eventTools, userIdentityTools, errorBookTools)
             .stream()
             .content()
             .doOnNext { chunk -> responseBuilder.append(chunk) }

@@ -41,3 +41,6 @@ out/
 
 .opencode
 cirno.db
+
+### Uploads ###
+uploads/
