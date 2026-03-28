@@ -94,3 +94,45 @@ Include the token in the `Authorization` header for authenticated requests:
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ```
+
+---
+
+### `POST /api/events`
+
+Create a new event. Requires authentication.
+
+**Request:**
+
+```json
+{
+  "name": "Study Session",
+  "datetime": "2026-04-01T14:00:00",
+  "description": "Review algorithms",
+  "tags": ["math", "study"]
+}
+```
+
+| Field       | Rules |
+|-------------|-------|
+| name        | Required, max 255 characters |
+| datetime    | Required, ISO 8601 format (`YYYY-MM-DDTHH:mm:ss`) |
+| description | Optional, free text |
+| tags        | Optional, list of tag name strings (each max 50 characters). Tags are created if they don't already exist and reused if they do. |
+
+**Response (201 Created):**
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Study Session",
+  "datetime": "2026-04-01T14:00:00",
+  "description": "Review algorithms",
+  "tags": ["math", "study"],
+  "createdAt": "2026-03-28T12:00:00"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — missing or invalid fields, invalid datetime format, or tag name exceeds 50 characters
+- `403 Forbidden` — no JWT token provided

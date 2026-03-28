@@ -7,7 +7,7 @@ import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
 import org.jetbrains.exposed.v1.javatime.CurrentDateTime
 import org.jetbrains.exposed.v1.javatime.datetime
-import java.util.UUID
+import java.util.*
 
 /**
  * Table: events (UUID PK, user FK, name, datetime, description, created_at, updated_at)

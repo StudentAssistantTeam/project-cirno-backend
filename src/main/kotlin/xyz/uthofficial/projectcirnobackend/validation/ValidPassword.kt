@@ -32,6 +32,26 @@ class UsernameValidator : ConstraintValidator<ValidUsername, String> {
     }
 }
 
+@Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+@Constraint(validatedBy = [TagListValidator::class])
+annotation class ValidTagList(
+    val message: String = "Each tag must be non-empty and at most 50 characters",
+    val groups: Array<KClass<*>> = [],
+    val payload: Array<KClass<out Any>> = []
+)
+
+class TagListValidator : ConstraintValidator<ValidTagList, List<String>> {
+
+    override fun isValid(value: List<String>?, context: ConstraintValidatorContext): Boolean {
+        if (value == null) return true
+        return value.all { tag ->
+            val trimmed = tag.trim()
+            trimmed.isNotBlank() && trimmed.length <= 50
+        }
+    }
+}
+
 class PasswordValidator : ConstraintValidator<ValidPassword, String> {
 
     override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean {
