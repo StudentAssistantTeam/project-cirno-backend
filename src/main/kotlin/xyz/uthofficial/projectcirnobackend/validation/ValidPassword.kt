@@ -27,7 +27,7 @@ class UsernameValidator : ConstraintValidator<ValidUsername, String> {
 
     override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean {
         if (value == null) return false
-        if (value.length < 3 || value.length > 50) return false
+        if (value.length !in 3..50) return false
         return value.all { it.isLetterOrDigit() || it == '_' || it == '-' }
     }
 }
@@ -37,7 +37,7 @@ class PasswordValidator : ConstraintValidator<ValidPassword, String> {
     override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean {
         if (value == null) return false
 
-        if (value.length < 8 || value.length > 64) return false
+        if (value.length !in 8..64) return false
 
         var hasLetter = false
         var hasDigit = false

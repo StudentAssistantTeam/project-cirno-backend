@@ -14,9 +14,11 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import xyz.uthofficial.projectcirnobackend.entity.Users
 import xyz.uthofficial.projectcirnobackend.repository.UserRepository
+import xyz.uthofficial.projectcirnobackend.security.JwtUtil
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
+import kotlin.test.assertEquals
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -30,6 +32,9 @@ class AuthControllerTest {
 
     @Autowired
     private lateinit var passwordEncoder: PasswordEncoder
+
+    @Autowired
+    private lateinit var jwtUtil: JwtUtil
 
     @BeforeEach
     fun setup() {
@@ -314,5 +319,165 @@ class AuthControllerTest {
         assertNotNull(user)
         assertTrue(passwordEncoder.matches("mypassword123", user.password))
         assertFalse(user.password == "mypassword123") // Ensure it's not stored in plain text
+    }
+
+    private fun signupUser(username: String, email: String, password: String) {
+        val request = """
+            {
+                "username": "$username",
+                "email": "$email",
+                "password": "$password"
+            }
+        """.trimIndent()
+        mockMvc.perform(post("/api/auth/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isCreated)
+    }
+
+    @Test
+    fun `should return 200 and JWT token when login with username succeeds`() {
+        signupUser("loginuser", "login@example.com", "password123")
+
+        val request = """
+            {
+                "usernameOrEmail": "loginuser",
+                "password": "password123"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.token").exists())
+            .andExpect(jsonPath("$.username").value("loginuser"))
+            .andExpect(jsonPath("$.email").value("login@example.com"))
+    }
+
+    @Test
+    fun `should return 200 and JWT token when login with email succeeds`() {
+        signupUser("emailuser", "emailuser@example.com", "password123")
+
+        val request = """
+            {
+                "usernameOrEmail": "emailuser@example.com",
+                "password": "password123"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.token").exists())
+            .andExpect(jsonPath("$.username").value("emailuser"))
+            .andExpect(jsonPath("$.email").value("emailuser@example.com"))
+    }
+
+    @Test
+    fun `should return 401 when login with wrong password`() {
+        signupUser("wrongpwuser", "wrongpw@example.com", "password123")
+
+        val request = """
+            {
+                "usernameOrEmail": "wrongpwuser",
+                "password": "wrongpassword123"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.error").value("Invalid username/email or password"))
+    }
+
+    @Test
+    fun `should return 401 when login with nonexistent username`() {
+        val request = """
+            {
+                "usernameOrEmail": "nonexistent",
+                "password": "password123"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.error").value("Invalid username/email or password"))
+    }
+
+    @Test
+    fun `should return 401 when login with nonexistent email`() {
+        val request = """
+            {
+                "usernameOrEmail": "nobody@example.com",
+                "password": "password123"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.error").value("Invalid username/email or password"))
+    }
+
+    @Test
+    fun `should return 400 when login with missing usernameOrEmail`() {
+        val request = """
+            {
+                "password": "password123"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should return 400 when login with missing password`() {
+        val request = """
+            {
+                "usernameOrEmail": "user"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should return a valid JWT token from login`() {
+        signupUser("jwtuser", "jwt@example.com", "password123")
+
+        val request = """
+            {
+                "usernameOrEmail": "jwtuser",
+                "password": "password123"
+            }
+        """.trimIndent()
+
+        val result = mockMvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.token").exists())
+            .andReturn()
+
+        val responseJson = result.response.contentAsString
+        val token = com.fasterxml.jackson.databind.ObjectMapper()
+            .readTree(responseJson)
+            .get("token").asText()
+
+        assertTrue(token.isNotBlank())
+        assertTrue(jwtUtil.validateToken(token))
+        assertEquals("jwtuser", jwtUtil.extractUsername(token))
     }
 }

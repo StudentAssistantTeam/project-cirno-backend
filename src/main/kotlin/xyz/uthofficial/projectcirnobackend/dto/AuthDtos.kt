@@ -31,3 +31,25 @@ data class SignupResponse(
     val username: String,
     val email: String
 )
+
+/**
+ * Request: POST /api/auth/login
+ * Validations: username/email and password are required.
+ */
+data class LoginRequest(
+    @field:NotBlank(message = "Username or email is required")
+    val usernameOrEmail: String,
+
+    @field:NotBlank(message = "Password is required")
+    val password: String
+)
+
+/**
+ * Response: returned on successful login.
+ * Contains the JWT token and user info. Password is intentionally excluded.
+ */
+data class LoginResponse(
+    val token: String,
+    val username: String,
+    val email: String
+)
