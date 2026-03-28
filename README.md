@@ -97,6 +97,24 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 ---
 
+### Error Responses
+
+All endpoints use a consistent error response format:
+
+```json
+{
+  "error": "Session not found"
+}
+```
+
+| Status Code | Meaning |
+|-------------|---------|
+| `400 Bad Request` | Invalid input, missing required fields, or resource not found |
+| `403 Forbidden` | Missing, invalid, or expired JWT token |
+| `500 Internal Server Error` | Unexpected server error |
+
+---
+
 ### Frontend Heartbeat Strategy
 
 Use two endpoints to check connectivity and auth status independently:
@@ -258,11 +276,31 @@ Delete an event and its tag associations. Requires authentication. Only the even
 
 ---
 
+### `POST /api/agent/sessions`
+
+Create a new chat session. Requires authentication.
+
+**Response (201 Created):**
+
+```json
+{
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+Use the returned `sessionId` in subsequent `/api/agent/chat` requests.
+
+**Errors:**
+
+- `403 Forbidden` — no JWT token provided
+
+---
+
 ### `POST /api/agent/chat`
 
 Chat with the Cirno AI assistant. Requires authentication. Streams responses via Server-Sent Events (SSE).
 
-`sessionId` is optional — omit it (or send `null`) to start a new session. The first SSE event returns the session ID so the frontend can track it.
+A valid session must exist before calling this endpoint. Create one first with `POST /api/agent/sessions`.
 
 **Request:**
 
@@ -276,7 +314,7 @@ Chat with the Cirno AI assistant. Requires authentication. Streams responses via
 | Field     | Rules |
 |-----------|-------|
 | message   | Required, the user's message |
-| sessionId | Optional, UUID of an existing session. Omit to create a new one. |
+| sessionId | Required, UUID of an existing session (obtained from `POST /api/agent/sessions`) |
 
 **Response (SSE stream):**
 
@@ -301,7 +339,7 @@ data: {"type":"done"}
 
 **Errors:**
 
-- `400 Bad Request` — missing `message` field
+- `400 Bad Request` — missing `message` field, invalid `sessionId`, or session not found
 - `403 Forbidden` — no JWT token provided
 
 ---

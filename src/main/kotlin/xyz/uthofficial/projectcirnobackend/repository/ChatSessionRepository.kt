@@ -31,7 +31,6 @@ class ChatSessionRepository {
     fun createSession(userId: UUID): UUID = transaction {
         val row = ChatSessions.insert {
             it[user] = userId
-            it[title] = null
         }
         row[ChatSessions.id].value
     }

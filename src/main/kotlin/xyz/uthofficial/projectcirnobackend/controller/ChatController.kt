@@ -106,6 +106,14 @@ class ChatController(
             }
     }
 
+    @PostMapping("/sessions")
+    fun createSession(principal: Principal): Map<String, String> {
+        val userId = resolveUserId(principal)
+        val (sessionId, _) = chatSessionService.getOrCreateSession(null, userId)
+        logger.info("Created session $sessionId for user=${principal.name}")
+        return mapOf("sessionId" to sessionId.toString())
+    }
+
     @GetMapping("/sessions")
     fun listSessions(principal: Principal): ChatSessionListResponse {
         val userId = resolveUserId(principal)
