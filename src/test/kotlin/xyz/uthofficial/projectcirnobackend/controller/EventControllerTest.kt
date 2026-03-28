@@ -9,10 +9,14 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.nio.ByteBuffer
+import java.util.UUID
 import kotlin.test.assertTrue
 
 @SpringBootTest
@@ -339,5 +343,182 @@ class EventControllerTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.events.length()").value(1))
             .andExpect(jsonPath("$.events[0].name").value("User1 Event"))
+    }
+
+    // --- PUT /api/events/{id} tests ---
+
+    @Test
+    fun `should return 403 when updating event without auth`() {
+        val eventId = UUID.randomUUID().toString()
+        val request = """
+            {
+                "name": "Updated Event",
+                "datetime": "2026-04-01T14:00:00"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(put("/api/events/$eventId")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `should return 200 when updating event successfully`() {
+        val token = signupAndLogin()
+        createEvent(token, "Original Event", "2026-04-01T14:00:00", listOf("tag1"))
+
+        // Get the event ID (assuming we can get it from the creation response or by querying)
+        // For simplicity, let's query the DB to get the ID
+        val eventId = transaction {
+            exec("SELECT id FROM events LIMIT 1") { rs ->
+                if (rs.next()) {
+                    val bytes = rs.getBytes("id")
+                    val bb = ByteBuffer.wrap(bytes)
+                    UUID(bb.long, bb.long).toString()
+                } else null
+            }
+        }
+
+        val request = """
+            {
+                "name": "Updated Event",
+                "datetime": "2026-05-01T14:00:00",
+                "description": "Updated description",
+                "tags": ["tag2", "tag3"]
+            }
+        """.trimIndent()
+
+        mockMvc.perform(put("/api/events/$eventId")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.name").value("Updated Event"))
+            .andExpect(jsonPath("$.datetime").value("2026-05-01T14:00:00"))
+            .andExpect(jsonPath("$.description").value("Updated description"))
+            .andExpect(jsonPath("$.tags.length()").value(2))
+            .andExpect(jsonPath("$.tags[0]").value("tag2"))
+            .andExpect(jsonPath("$.tags[1]").value("tag3"))
+    }
+
+    @Test
+    fun `should return 400 when updating non-existent event`() {
+        val token = signupAndLogin()
+        val fakeId = UUID.randomUUID().toString()
+
+        val request = """
+            {
+                "name": "Updated Event",
+                "datetime": "2026-04-01T14:00:00"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(put("/api/events/$fakeId")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should return 400 when updating another user's event`() {
+        val token1 = signupAndLogin("user1", "user1@example.com")
+        val token2 = signupAndLogin("user2", "user2@example.com")
+        
+        createEvent(token1, "User1 Event", "2026-04-01T14:00:00")
+        
+        val eventId = transaction {
+            exec("SELECT id FROM events LIMIT 1") { rs ->
+                if (rs.next()) {
+                    val bytes = rs.getBytes("id")
+                    val bb = ByteBuffer.wrap(bytes)
+                    UUID(bb.long, bb.long).toString()
+                } else null
+            }
+        }
+
+        val request = """
+            {
+                "name": "Hacked Event",
+                "datetime": "2026-04-01T14:00:00"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(put("/api/events/$eventId")
+            .header("Authorization", "Bearer $token2")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isBadRequest)
+    }
+
+    // --- DELETE /api/events/{id} tests ---
+
+    @Test
+    fun `should return 403 when deleting event without auth`() {
+        val eventId = UUID.randomUUID().toString()
+        mockMvc.perform(delete("/api/events/$eventId"))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `should return 200 when deleting event successfully`() {
+        val token = signupAndLogin()
+        createEvent(token, "To Delete", "2026-04-01T14:00:00")
+
+        val eventId = transaction {
+            exec("SELECT id FROM events LIMIT 1") { rs ->
+                if (rs.next()) {
+                    val bytes = rs.getBytes("id")
+                    val bb = ByteBuffer.wrap(bytes)
+                    UUID(bb.long, bb.long).toString()
+                } else null
+            }
+        }
+
+        mockMvc.perform(delete("/api/events/$eventId")
+            .header("Authorization", "Bearer $token"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.message").value("Event deleted"))
+            
+        // Verify it's gone
+        mockMvc.perform(get("/api/events")
+            .header("Authorization", "Bearer $token")
+            .param("start", "2026-01-01T00:00:00")
+            .param("length", "12"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.events.length()").value(0))
+    }
+
+    @Test
+    fun `should return 400 when deleting non-existent event`() {
+        val token = signupAndLogin()
+        val fakeId = UUID.randomUUID().toString()
+
+        mockMvc.perform(delete("/api/events/$fakeId")
+            .header("Authorization", "Bearer $token"))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should return 400 when deleting another user's event`() {
+        val token1 = signupAndLogin("user1", "user1@example.com")
+        val token2 = signupAndLogin("user2", "user2@example.com")
+        
+        createEvent(token1, "User1 Event", "2026-04-01T14:00:00")
+        
+        val eventId = transaction {
+            exec("SELECT id FROM events LIMIT 1") { rs ->
+                if (rs.next()) {
+                    val bytes = rs.getBytes("id")
+                    val bb = ByteBuffer.wrap(bytes)
+                    UUID(bb.long, bb.long).toString()
+                } else null
+            }
+        }
+
+        mockMvc.perform(delete("/api/events/$eventId")
+            .header("Authorization", "Bearer $token2"))
+            .andExpect(status().isBadRequest)
     }
 }
