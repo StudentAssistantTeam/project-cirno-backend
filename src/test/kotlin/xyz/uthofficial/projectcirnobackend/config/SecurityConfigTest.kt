@@ -90,4 +90,10 @@ class SecurityConfigTest {
             .content(request))
             .andExpect(status().isCreated)
     }
+
+    @Test
+    fun `should allow access to health endpoint without authentication`() {
+        mockMvc.perform(get("/api/health"))
+            .andExpect(status().isOk)
+    }
 }

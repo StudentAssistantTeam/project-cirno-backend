@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -489,5 +490,47 @@ class AuthControllerTest {
         assertTrue(token.isNotBlank())
         assertTrue(jwtUtil.validateToken(token))
         assertEquals("jwtuser", jwtUtil.extractUsername(token))
+    }
+
+    @Test
+    fun `should return 200 and user info when GET me is called with valid JWT`() {
+        // Create user
+        val signupRequest = """
+            {
+                "username": "meuser",
+                "email": "meuser@example.com",
+                "password": "password123"
+            }
+        """.trimIndent()
+
+        val signupResult = mockMvc.perform(post("/api/auth/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(signupRequest))
+            .andExpect(status().isCreated)
+            .andReturn()
+
+        val token = com.fasterxml.jackson.databind.ObjectMapper()
+            .readTree(signupResult.response.contentAsString)
+            .get("token").asText()
+
+        mockMvc.perform(get("/api/me")
+            .header("Authorization", "Bearer $token"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").exists())
+            .andExpect(jsonPath("$.username").value("meuser"))
+            .andExpect(jsonPath("$.email").value("meuser@example.com"))
+    }
+
+    @Test
+    fun `should return 403 when GET me is called without JWT`() {
+        mockMvc.perform(get("/api/me"))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `should return 403 when GET me is called with invalid JWT`() {
+        mockMvc.perform(get("/api/me")
+            .header("Authorization", "Bearer invalid-token-here"))
+            .andExpect(status().isForbidden)
     }
 }

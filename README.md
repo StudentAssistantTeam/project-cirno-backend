@@ -178,3 +178,35 @@ Events are sorted by datetime in ascending order.
 
 - `400 Bad Request` — invalid `start` datetime format (must be valid ISO 8601)
 - `403 Forbidden` — no JWT token provided
+
+---
+
+### `GET /api/health`
+
+Unauthenticated health check. Use this to verify server reachability.
+
+**Response (200 OK):**
+
+```json
+{ "status": "ok" }
+```
+
+---
+
+### `GET /api/me`
+
+Returns the authenticated user's profile. Use this to verify both connectivity and auth status (token validity).
+
+**Response (200 OK):**
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "username": "johndoe",
+  "email": "john@example.com"
+}
+```
+
+**Errors:**
+
+- `403 Forbidden` — no JWT token or invalid token provided
