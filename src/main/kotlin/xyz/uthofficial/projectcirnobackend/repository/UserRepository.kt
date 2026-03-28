@@ -7,6 +7,9 @@ import xyz.uthofficial.projectcirnobackend.entity.User
 import xyz.uthofficial.projectcirnobackend.entity.Users
 import java.util.UUID
 
+/** Plain data transfer object — safe to use outside Exposed transactions. */
+data class UserRecord(val id: UUID, val username: String, val email: String)
+
 /**
  * Spring-managed repository for user CRUD operations.
  * Each method opens its own Exposed transaction.
@@ -37,13 +40,15 @@ class UserRepository {
     /**
      * Creates a new user with the given credentials.
      * hashedPassword must already be BCrypt-hashed.
+     * Returns a plain DTO to avoid leaking Exposed entities across transaction boundaries.
      */
-    fun createUser(username: String, email: String, hashedPassword: String): User = transaction {
-        User.new {
+    fun createUser(username: String, email: String, hashedPassword: String): UserRecord = transaction {
+        val user = User.new {
             this.username = username
             this.email = email
             this.password = hashedPassword
         }
+        UserRecord(user.id.value, user.username, user.email)
     }
 
     /** Finds a user by UUID primary key. Returns null if not found. */

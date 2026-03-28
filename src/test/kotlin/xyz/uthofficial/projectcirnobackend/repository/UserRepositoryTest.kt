@@ -94,7 +94,7 @@ class UserRepositoryTest {
     fun `should find user by ID`() {
         val user = userRepository.createUser("testuser", "test@example.com", "hashedPassword")
 
-        val found = userRepository.findById(user.id.value)
+        val found = userRepository.findById(user.id)
 
         assertNotNull(found)
         assertEquals("testuser", found.username)
