@@ -1,7 +1,7 @@
 package xyz.uthofficial.projectcirnobackend.config
 
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -12,7 +12,7 @@ import xyz.uthofficial.projectcirnobackend.entity.Users
  * For production, replace with Flyway or Liquibase migrations.
  */
 @Configuration
-class DatabaseConfig {
+class AppDatabaseConfig {
 
     /**
      * Runs SchemaUtils.createMissingTablesAndColumns for the Users table
@@ -21,7 +21,7 @@ class DatabaseConfig {
     @Bean
     fun initDatabase(): ApplicationRunner = ApplicationRunner {
         transaction {
-            arrayOf<Table>(Users)
+            SchemaUtils.createMissingTablesAndColumns(Users)
         }
     }
 }

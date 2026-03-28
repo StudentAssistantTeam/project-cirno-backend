@@ -1,6 +1,7 @@
 package xyz.uthofficial.projectcirnobackend.repository
 
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.springframework.stereotype.Repository
 import xyz.uthofficial.projectcirnobackend.entity.User
 import xyz.uthofficial.projectcirnobackend.entity.Users

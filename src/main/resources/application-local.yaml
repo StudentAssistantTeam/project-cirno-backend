@@ -4,3 +4,6 @@ spring:
   ai:
     openai:
       api-key: sk-mock-key-for-testing
+  datasource:
+    url: jdbc:sqlite:file:memdb?mode=memory&cache=shared
+    driver-class-name: org.sqlite.JDBC
