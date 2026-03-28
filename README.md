@@ -475,6 +475,28 @@ Returned if the user has not set an identity yet.
 
 ---
 
+### `GET /api/user/identity/goal`
+
+Retrieve only the authenticated user's goal. Requires authentication.
+
+**Response (200 OK):**
+
+```json
+{
+  "goal": "full A* in physics"
+}
+```
+
+**Response (204 No Content):**
+
+Returned if the user has not set an identity yet.
+
+**Errors:**
+
+- `403 Forbidden` — no JWT token or invalid token provided
+
+---
+
 ### `POST /api/user/identity`
 
 Create a new identity and goal for the authenticated user. Requires authentication. Fails if an identity already exists.

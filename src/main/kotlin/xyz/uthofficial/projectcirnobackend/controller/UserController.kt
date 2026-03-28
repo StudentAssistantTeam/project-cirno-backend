@@ -41,6 +41,14 @@ class UserController(
         return ResponseEntity.ok(identity)
     }
 
+    @GetMapping("/user/identity/goal")
+    fun getGoal(principal: Principal): ResponseEntity<Any> {
+        val user = userRepository.findByUsername(principal.name) ?: return ResponseEntity.status(401).build()
+        val identity = userIdentityService.getByIdentity(user.id.value)
+            ?: return ResponseEntity.noContent().build()
+        return ResponseEntity.ok(mapOf("goal" to identity.goal))
+    }
+
     @PostMapping("/user/identity")
     fun createIdentity(@Valid @RequestBody request: UserIdentityRequest, principal: Principal): ResponseEntity<Any> {
         val user = userRepository.findByUsername(principal.name) ?: return ResponseEntity.status(401).build()
