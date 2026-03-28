@@ -97,6 +97,22 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 ---
 
+### Frontend Heartbeat Strategy
+
+Use two endpoints to check connectivity and auth status independently:
+
+1. **`GET /api/health`** — unauthenticated, no token needed. Returns `200 { "status": "ok" }` if the server is reachable. Poll this periodically (e.g. every 30s) to detect network/server outages.
+
+2. **`GET /api/me`** — authenticated. Returns `200` with user info if the JWT is valid, or `403` if expired/missing. Call this to detect when the user's token has expired and a re-login is needed.
+
+**Recommended pattern:**
+
+- On app load: call both. `/api/health` confirms the backend is up, `/api/me` confirms the stored token is still valid.
+- Background: poll `/api/health` every 30s for connectivity.
+- On navigation/protected action: call `/api/me` to gate access before making API calls. If it returns `403`, redirect to login.
+
+---
+
 ### `POST /api/events`
 
 Create a new event. Requires authentication.
