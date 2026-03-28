@@ -117,7 +117,7 @@ class ChatSessionRepository {
 
                 // Auto-title from first user message
                 if (isFirstUserMessage && msg is UserMessage) {
-                    val title = msg.text.take(50)
+                    val title = msg.text?.take(50)
                     ChatSessions.update({ ChatSessions.id eq sessionId }) {
                         it[ChatSessions.title] = title
                         it[updatedAt] = now

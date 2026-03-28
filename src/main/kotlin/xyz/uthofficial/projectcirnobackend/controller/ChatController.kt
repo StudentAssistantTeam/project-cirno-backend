@@ -7,8 +7,10 @@ import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.model.ChatModel
 import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.http.MediaType
+import org.springframework.http.codec.ServerSentEvent
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import xyz.uthofficial.projectcirnobackend.dto.*
 import xyz.uthofficial.projectcirnobackend.repository.EventRepository
 import xyz.uthofficial.projectcirnobackend.repository.UserRepository
@@ -50,7 +52,7 @@ class ChatController(
     fun chat(
         @Valid @RequestBody request: ChatRequest,
         principal: Principal
-    ): SseEmitter {
+    ): Flux<ServerSentEvent<String>> {
         logger.info("=== CHAT REQUEST === user=${principal.name} sessionId=${request.sessionId} message=${request.message.take(100)}")
 
         val userId = resolveUserId(principal)
@@ -59,8 +61,6 @@ class ChatController(
 
         logger.info("Session: $sessionId — history size: ${history.size}")
 
-        val emitter = SseEmitter(300_000)
-
         val eventTools = EventTools(eventRepository, userRepository, principal.name)
 
         val messages: MutableList<Message> = mutableListOf(buildSystemPrompt())
@@ -68,40 +68,42 @@ class ChatController(
 
         chatSessionService.appendUserMessage(sessionId, request.message)
 
-        Thread {
-            try {
-                logger.info("Calling Mimo API (call mode)...")
+        val responseBuilder = StringBuilder()
 
-                val response = ChatClient.create(chatModel)
-                    .prompt(Prompt(messages))
-                    .user(request.message)
-                    .tools(eventTools)
-                    .call()
-
-                val content = response.content() ?: ""
-                logger.info("=== RESPONSE (${content.length} chars): ${content.take(200)}")
-
-                emitter.send(SseEmitter.event().data("""{"type":"session","content":"$sessionId"}"""))
-                emitter.send(SseEmitter.event().data("""{"type":"text","content":"${escapeJson(content)}"}"""))
-                emitter.send(SseEmitter.event().data("""{"type":"done"}"""))
-                emitter.complete()
-
-                chatSessionService.appendAssistantMessage(sessionId, content)
-            } catch (e: Exception) {
-                logger.error("=== CHAT ERROR === ${e.javaClass.name}: ${e.message}", e)
-                try {
-                    val errorMessage = if (e.message != null) escapeJson(e.message!!) else "An unexpected error occurred"
-                    emitter.send(SseEmitter.event().data("""{"type":"error","content":"$errorMessage"}"""))
-                    emitter.send(SseEmitter.event().data("""{"type":"done"}"""))
-                    emitter.complete()
-                } catch (sendEx: Exception) {
-                    logger.error("Failed to send error event", sendEx)
-                    emitter.completeWithError(sendEx)
+        return ChatClient.create(chatModel)
+            .prompt(Prompt(messages))
+            .user(request.message)
+            .tools(eventTools)
+            .stream()
+            .content()
+            .doOnNext { chunk -> responseBuilder.append(chunk) }
+            .map { chunk ->
+                ServerSentEvent.builder("""{"type":"text","content":"${escapeJson(chunk)}"}""")
+                    .build()
+            }
+            .startWith(
+                ServerSentEvent.builder("""{"type":"session","content":"$sessionId"}""")
+                    .build()
+            )
+            .concatWith(
+                Mono.just(
+                    ServerSentEvent.builder("""{"type":"done"}""").build()
+                )
+            )
+            .doOnComplete {
+                if (responseBuilder.isNotEmpty()) {
+                    chatSessionService.appendAssistantMessage(sessionId, responseBuilder.toString())
+                    logger.info("=== RESPONSE (${responseBuilder.length} chars): ${responseBuilder.take(200)}")
                 }
             }
-        }.start()
-
-        return emitter
+            .onErrorResume { error ->
+                logger.error("=== CHAT ERROR === ${error.javaClass.name}: ${error.message}", error)
+                val errorMessage = if (error.message != null) escapeJson(error.message!!) else "An unexpected error occurred"
+                Flux.just(
+                    ServerSentEvent.builder("""{"type":"error","content":"$errorMessage"}""").build(),
+                    ServerSentEvent.builder("""{"type":"done"}""").build()
+                )
+            }
     }
 
     @GetMapping("/sessions")

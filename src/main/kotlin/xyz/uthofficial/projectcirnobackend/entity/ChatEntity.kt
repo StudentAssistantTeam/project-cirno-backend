@@ -1,5 +1,6 @@
 package xyz.uthofficial.projectcirnobackend.entity
 
+import kotlin.uuid.ExperimentalUuidApi
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
@@ -24,6 +25,7 @@ object ChatSessions : UUIDTable("chat_sessions") {
  * Table: chat_messages (UUID PK, session FK, role, content, created_at)
  * Messages within a chat session, ordered by created_at.
  */
+@OptIn(ExperimentalUuidApi::class)
 object ChatMessages : Table("chat_messages") {
     val id = uuid("id").autoGenerate()
     val session = reference("session_id", ChatSessions)
