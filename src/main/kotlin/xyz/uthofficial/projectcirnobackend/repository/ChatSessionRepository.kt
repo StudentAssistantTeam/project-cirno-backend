@@ -2,6 +2,7 @@ package xyz.uthofficial.projectcirnobackend.repository
 
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -141,8 +142,7 @@ class ChatSessionRepository {
 
     fun sessionBelongsToUser(sessionId: UUID, userId: UUID): Boolean = transaction {
         ChatSessions.selectAll()
-            .where { ChatSessions.id eq sessionId }
-            .singleOrNull()
-            ?.get(ChatSessions.user)?.let { it == userId } ?: false
+            .where { (ChatSessions.id eq sessionId) and (ChatSessions.user eq userId) }
+            .any()
     }
 }
