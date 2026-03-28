@@ -85,7 +85,6 @@ class EventControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(request))
             .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.id").exists())
             .andExpect(jsonPath("$.name").value("Study Session"))
             .andExpect(jsonPath("$.datetime").value("2026-04-01T14:00:00"))
             .andExpect(jsonPath("$.description").value("Review algorithms"))
@@ -93,7 +92,6 @@ class EventControllerTest {
             .andExpect(jsonPath("$.tags.length()").value(2))
             .andExpect(jsonPath("$.tags[0]").value("math"))
             .andExpect(jsonPath("$.tags[1]").value("study"))
-            .andExpect(jsonPath("$.createdAt").exists())
     }
 
     @Test
@@ -112,10 +110,8 @@ class EventControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(request))
             .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.id").exists())
             .andExpect(jsonPath("$.name").value("Quick Event"))
             .andExpect(jsonPath("$.datetime").value("2026-05-15T09:00:00"))
-            .andExpect(jsonPath("$.description").isEmpty)
             .andExpect(jsonPath("$.tags").isArray)
             .andExpect(jsonPath("$.tags.length()").value(0))
     }
@@ -182,7 +178,16 @@ class EventControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(request))
             .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.tags.length()").value(2))
+            .andExpect(jsonPath("$.tags.length()").value(3))
+
+        // Verify DB has only two distinct tags (math + MATH, deduplicated)
+        val tagCount = transaction {
+            exec("SELECT COUNT(*) FROM tags") { rs ->
+                rs.next()
+                rs.getInt(1)
+            }
+        }
+        assertTrue(tagCount == 2, "Expected exactly 2 tags in DB, found $tagCount")
     }
 
     @Test

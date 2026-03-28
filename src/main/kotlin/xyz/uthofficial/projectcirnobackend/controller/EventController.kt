@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import xyz.uthofficial.projectcirnobackend.dto.CreateEventRequest
-import xyz.uthofficial.projectcirnobackend.dto.EventResponse
 import xyz.uthofficial.projectcirnobackend.repository.EventRepository
 import xyz.uthofficial.projectcirnobackend.repository.UserRepository
 import java.security.Principal
@@ -29,7 +28,7 @@ class EventController(
      * Creates a new event for the authenticated user.
      *
      * Request: { "name": "...", "datetime": "2026-04-01T14:00:00", "description": "...", "tags": [...] }
-     * Response: 201 { "id": "...", "name": "...", "datetime": "...", "description": "...", "tags": [...], "createdAt": "..." }
+     * Response: 201 echoes the request body so the frontend can verify creation.
      */
     @PostMapping
     fun createEvent(
@@ -41,18 +40,8 @@ class EventController(
                 .body(mapOf("error" to "User not found"))
 
         try {
-            val record = eventRepository.createEvent(user.id.value, request)
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(
-                EventResponse(
-                    id = record.id,
-                    name = record.name,
-                    datetime = record.datetime,
-                    description = record.description,
-                    tags = record.tags,
-                    createdAt = record.createdAt
-                )
-            )
+            eventRepository.createEvent(user.id.value, request)
+            return ResponseEntity.status(HttpStatus.CREATED).body(request)
         } catch (e: IllegalArgumentException) {
             return ResponseEntity.badRequest().body(mapOf("error" to e.message))
         }

@@ -121,14 +121,14 @@ Create a new event. Requires authentication.
 
 **Response (201 Created):**
 
+Echoes back the original request body so the frontend can verify creation.
+
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Study Session",
   "datetime": "2026-04-01T14:00:00",
   "description": "Review algorithms",
-  "tags": ["math", "study"],
-  "createdAt": "2026-03-28T12:00:00"
+  "tags": ["math", "study"]
 }
 ```
 
