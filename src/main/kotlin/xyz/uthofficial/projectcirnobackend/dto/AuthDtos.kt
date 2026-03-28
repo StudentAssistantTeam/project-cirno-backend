@@ -24,12 +24,13 @@ data class SignupRequest(
 
 /**
  * Response: returned on successful signup.
- * Contains id, username, email. Password is intentionally excluded.
+ * Contains id, username, email, and JWT token. Password is intentionally excluded.
  */
 data class SignupResponse(
     val id: UUID,
     val username: String,
-    val email: String
+    val email: String,
+    val token: String
 )
 
 /**

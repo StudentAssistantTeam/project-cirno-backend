@@ -42,7 +42,7 @@ class AuthControllerTest {
     }
 
     @Test
-    fun `should return 201 when signup is successful`() {
+    fun `should return 201 and JWT token when signup is successful`() {
         val signupRequest = """
             {
                 "username": "newuser",
@@ -51,13 +51,23 @@ class AuthControllerTest {
             }
         """.trimIndent()
 
-        mockMvc.perform(post("/api/auth/signup")
+        val result = mockMvc.perform(post("/api/auth/signup")
             .contentType(MediaType.APPLICATION_JSON)
             .content(signupRequest))
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.id").exists())
             .andExpect(jsonPath("$.username").value("newuser"))
             .andExpect(jsonPath("$.email").value("newuser@example.com"))
+            .andExpect(jsonPath("$.token").exists())
+            .andReturn()
+
+        val token = com.fasterxml.jackson.databind.ObjectMapper()
+            .readTree(result.response.contentAsString)
+            .get("token").asText()
+
+        assertTrue(token.isNotBlank())
+        assertTrue(jwtUtil.validateToken(token))
+        assertEquals("newuser", jwtUtil.extractUsername(token))
     }
 
     @Test

@@ -35,7 +35,7 @@ class AuthController(
     /**
      * POST /api/auth/signup
      * Request:  { "username": "...", "email": "...", "password": "..." }
-     * Response: 201 { "id": "...", "username": "...", "email": "..." }
+     * Response: 201 { "id": "...", "username": "...", "email": "...", "token": "..." }
      * Errors:   400 { "error": "..." } for duplicates or validation failures.
      */
     @PostMapping("/signup")
@@ -49,12 +49,14 @@ class AuthController(
 
         val hashedPassword = passwordEncoder.encode(request.password)!!
         val record = userRepository.createUser(request.username, request.email, hashedPassword)
+        val token = jwtUtil.generateToken(record.username)
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
             SignupResponse(
                 id = record.id,
                 username = record.username,
-                email = record.email
+                email = record.email,
+                token = token
             )
         )
     }
