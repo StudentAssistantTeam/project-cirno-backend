@@ -70,4 +70,15 @@ class ErrorBookTools(
             "Error: ${e.message}"
         }
     }
+
+    @Tool(description = "Search the user's errorbook by keywords. Searches description text (substring) and tags (exact match). Returns up to the specified limit of matching records.")
+    fun searchErrorRecords(
+        @ToolParam(description = "Comma-separated keywords to search for. Matches description substrings and exact tag names.") keywords: String,
+        @ToolParam(description = "Maximum number of results to return (1-30, default 10)") limit: Int? = null
+    ): String {
+        val user = userRepository.findByUsername(currentUsername) ?: return "Error: User not found"
+        val kwList = keywords.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        if (kwList.isEmpty()) return "Error: No keywords provided"
+        return errorBookService.searchForAi(user.id.value, kwList, limit)
+    }
 }

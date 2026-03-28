@@ -115,7 +115,8 @@ class ErrorBookRepository {
         tag: String?,
         dateFrom: LocalDateTime?,
         dateTo: LocalDateTime?,
-        keywords: List<String>? = null
+        keywords: List<String>? = null,
+        limit: Int? = null
     ): List<ErrorBookRecord> =
         transaction {
             val query = ErrorBooks.selectAll()
@@ -156,9 +157,12 @@ class ErrorBookRepository {
                 filtered = filtered.filter { record ->
                     cleanKeywords.any { kw ->
                         record.description?.lowercase()?.contains(kw) == true ||
-                        record.tags.any { t -> t.lowercase() == kw }
+                        record.tags.any { t -> t.lowercase().contains(kw) }
                     }
                 }
+            }
+            if (limit != null && limit > 0) {
+                filtered = filtered.take(limit.coerceAtMost(30))
             }
             filtered
         }

@@ -100,6 +100,8 @@ class ChatController(
               the date it occurred. Use this to track recurring weak areas.
             - **Update error records** — edit descriptions, tags, or dates of existing records.
             - **Delete error records** — remove records that are no longer relevant.
+            - **Search errors** — search the user's errorbook by keywords (matches description substrings
+              and exact tag names). Specify keywords and optionally a result limit (1–30, default 10).
             - **Review errors** — the system provides a summary of recent errors in the context,
               so you can reference them when scheduling revision or identifying weak topics.
 

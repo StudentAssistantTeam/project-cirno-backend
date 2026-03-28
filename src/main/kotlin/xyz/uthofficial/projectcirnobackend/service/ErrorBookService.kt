@@ -71,10 +71,10 @@ class ErrorBookService(
         return toResponse(record)
     }
 
-    fun findAll(userId: UUID, tag: String?, dateFrom: String?, dateTo: String?, keywords: List<String>? = null): List<ErrorBookResponse> {
+    fun findAll(userId: UUID, tag: String?, dateFrom: String?, dateTo: String?, keywords: List<String>? = null, limit: Int? = null): List<ErrorBookResponse> {
         val from = parseDate(dateFrom)
         val to = parseDate(dateTo)
-        return errorBookRepository.findAll(userId, tag, from, to, keywords).map { toResponse(it) }
+        return errorBookRepository.findAll(userId, tag, from, to, keywords, limit).map { toResponse(it) }
     }
 
     fun update(
@@ -107,10 +107,24 @@ class ErrorBookService(
         return errorBookRepository.delete(userId, errorId)
     }
 
+    fun searchForAi(userId: UUID, keywords: List<String>?, limit: Int?): String {
+        val maxRecords = (limit ?: 10).coerceIn(1, 30)
+        val records = errorBookRepository.findAll(userId, null, null, null, keywords, maxRecords)
+        if (records.isEmpty()) return "No matching error records found."
+        return records.joinToString("\n\n") { e ->
+            val parts = mutableListOf<String>()
+            val tags = if (e.tags.isNotEmpty()) " Tags: ${e.tags.joinToString(", ")}" else ""
+            val date = e.date ?: "no date"
+            parts += "ID: ${e.id}"
+            parts += "Date: $date$tags"
+            if (e.description != null) parts += "Description: ${e.description}"
+            if (e.imagePath != null) parts += "Has image: yes"
+            parts.joinToString("\n")
+        }
+    }
+
     fun getRecentErrorsSummary(userId: UUID, limit: Int = 10): String {
-        val errors = errorBookRepository.findAll(userId, null, null, null)
-            .sortedByDescending { it.createdAt }
-            .take(limit)
+        val errors = errorBookRepository.findAll(userId, null, null, null, limit = limit)
         if (errors.isEmpty()) return "No error records."
         return errors.joinToString("\n") { e ->
             val tags = if (e.tags.isNotEmpty()) " [${e.tags.joinToString(", ")}]" else ""
