@@ -15,7 +15,7 @@ import java.util.UUID
 object UserIdentities : UUIDTable("user_identities") {
     val user = reference("user_id", Users).uniqueIndex()
     val identity = varchar("identity", 255)
-    val goal = varchar("goal", 255)
+    val goal = text("goal")
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
 }
