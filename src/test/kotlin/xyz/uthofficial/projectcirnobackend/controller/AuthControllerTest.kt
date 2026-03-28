@@ -153,6 +153,22 @@ class AuthControllerTest {
     }
 
     @Test
+    fun `should return 400 when username has invalid characters`() {
+        val request = """
+            {
+                "username": "user name!",
+                "email": "badname@example.com",
+                "password": "password123"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
     fun `should return 400 when email is invalid`() {
         val request = """
             {
@@ -186,12 +202,44 @@ class AuthControllerTest {
 
     @Test
     fun `should return 400 when password is too long`() {
-        val longPassword = "a".repeat(101)
+        val longPassword = "a1b2c3d4".repeat(9) // 72 chars
         val request = """
             {
                 "username": "user",
                 "email": "user@example.com",
                 "password": "$longPassword"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should return 400 when password has no digit`() {
+        val request = """
+            {
+                "username": "user",
+                "email": "nodigit@example.com",
+                "password": "OnlyLetters"
+            }
+        """.trimIndent()
+
+        mockMvc.perform(post("/api/auth/signup")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(request))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should return 400 when password has no letter`() {
+        val request = """
+            {
+                "username": "user",
+                "email": "noletter@example.com",
+                "password": "12345678"
             }
         """.trimIndent()
 
