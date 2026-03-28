@@ -4,6 +4,13 @@ spring:
   datasource:
     url: "jdbc:sqlite::memory:"
     driver-class-name: org.sqlite.JDBC
+  ai:
+    openai:
+      api-key: test-key
+      base-url: https://api.xiaomimimo.com
+      chat:
+        options:
+          model: mimo-v2-flash
 
 app:
   jwt:

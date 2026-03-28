@@ -19,7 +19,7 @@ description = "project-cirno-backend"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(24)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -35,7 +35,7 @@ repositories {
 
 extra["snippetsDir"] = file("build/generated-snippets")
 
-extra["springAiVersion"] = "1.0.0"
+extra["springAiVersion"] = "2.0.0-M4"
 extra["springCloudVersion"] = "2025.1.1"
 extra["springGrpcVersion"] = "1.0.2"
 extra["springModulithVersion"] = "2.0.3"
@@ -53,6 +53,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-webservices")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
+    // Spring AI — OpenAI-compatible LLM integration (Mimo API)
+    implementation("org.springframework.ai:spring-ai-starter-model-openai")
     implementation("io.grpc:grpc-services")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")

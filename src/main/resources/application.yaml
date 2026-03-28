@@ -4,6 +4,14 @@ spring:
   datasource:
     url: jdbc:sqlite:cirno.db
     driver-class-name: org.sqlite.JDBC
+  ai:
+    openai:
+      api-key: ${MIMO_API_KEY:placeholder}
+      base-url: https://api.xiaomimimo.com
+      chat:
+        options:
+          model: mimo-v2-flash
+          max-tokens: 2048
 
 app:
   jwt:
