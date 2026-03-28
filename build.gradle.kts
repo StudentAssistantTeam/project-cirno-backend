@@ -34,10 +34,12 @@ repositories {
 }
 
 extra["snippetsDir"] = file("build/generated-snippets")
-extra["springAiVersion"] = "2.0.0-M3"
+
 extra["springCloudVersion"] = "2025.1.1"
 extra["springGrpcVersion"] = "1.0.2"
 extra["springModulithVersion"] = "2.0.3"
+extra["jjwtVersion"] = "0.12.6"
+extra["exposedVersion"] = "1.1.1"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-rest")
@@ -55,15 +57,30 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
-    implementation("org.springframework.ai:spring-ai-starter-model-openai")
+
     implementation("org.springframework.grpc:spring-grpc-client-spring-boot-starter")
     implementation("org.springframework.grpc:spring-grpc-server-web-spring-boot-starter")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("tools.jackson.module:jackson-module-kotlin")
+    // Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    // JWT
+    implementation("io.jsonwebtoken:jjwt-api:${property("jjwtVersion")}")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:${property("jjwtVersion")}")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:${property("jjwtVersion")}")
+    // Exposed ORM + SQLite
+    implementation("org.jetbrains.exposed:exposed-core:${property("exposedVersion")}")
+    implementation("org.jetbrains.exposed:exposed-dao:${property("exposedVersion")}")
+    implementation("org.jetbrains.exposed:exposed-jdbc:${property("exposedVersion")}")
+    implementation("org.jetbrains.exposed:exposed-java-time:${property("exposedVersion")}")
+    implementation("org.jetbrains.exposed:exposed-spring-boot4-starter:1.1.1")
+    implementation("org.xerial:sqlite-jdbc")
+    implementation("org.springframework.boot:spring-boot-starter-jdbc:4.0.5")
+
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
-    developmentOnly("org.springframework.ai:spring-ai-spring-boot-docker-compose")
+
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-data-rest-test")
@@ -82,7 +99,7 @@ dependencies {
     testImplementation("com.unboundid:unboundid-ldapsdk")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testImplementation("org.springframework.ai:spring-ai-spring-boot-testcontainers")
+
     testImplementation("org.springframework.cloud:spring-cloud-starter-contract-stub-runner")
     testImplementation("org.springframework.cloud:spring-cloud-starter-contract-verifier")
     testImplementation("org.springframework.grpc:spring-grpc-test")
@@ -90,12 +107,13 @@ dependencies {
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
 }
 
 dependencyManagement {
     imports {
         mavenBom("org.springframework.modulith:spring-modulith-bom:${property("springModulithVersion")}")
-        mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
+
         mavenBom("org.springframework.grpc:spring-grpc-dependencies:${property("springGrpcVersion")}")
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
     }
