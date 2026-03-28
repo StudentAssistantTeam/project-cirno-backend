@@ -11,6 +11,7 @@ import xyz.uthofficial.projectcirnobackend.entity.Events
 import xyz.uthofficial.projectcirnobackend.entity.EventTags
 import xyz.uthofficial.projectcirnobackend.entity.Tags
 import xyz.uthofficial.projectcirnobackend.entity.Users
+import xyz.uthofficial.projectcirnobackend.entity.UserIdentities
 
 /**
  * Auto-creates missing Exposed tables on startup.
@@ -26,7 +27,7 @@ class AppDatabaseConfig {
     @Bean
     fun initDatabase(): ApplicationRunner = ApplicationRunner {
         transaction {
-            SchemaUtils.createMissingTablesAndColumns(Users, Events, Tags, EventTags, ChatSessions, ChatMessages)
+            SchemaUtils.createMissingTablesAndColumns(Users, Events, Tags, EventTags, ChatSessions, ChatMessages, UserIdentities)
         }
     }
 }

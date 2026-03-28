@@ -449,3 +449,95 @@ Returns the authenticated user's profile. Use this to verify both connectivity a
 **Errors:**
 
 - `403 Forbidden` — no JWT token or invalid token provided
+
+---
+
+### `GET /api/user/identity`
+
+Retrieve the authenticated user's identity and goal. Requires authentication.
+
+**Response (200 OK):**
+
+```json
+{
+  "identity": "secondary school student",
+  "goal": "full A* in physics"
+}
+```
+
+**Response (204 No Content):**
+
+Returned if the user has not set an identity yet.
+
+**Errors:**
+
+- `403 Forbidden` — no JWT token or invalid token provided
+
+---
+
+### `POST /api/user/identity`
+
+Create a new identity and goal for the authenticated user. Requires authentication. Fails if an identity already exists.
+
+**Request:**
+
+```json
+{
+  "identity": "secondary school student",
+  "goal": "full A* in physics"
+}
+```
+
+| Field    | Rules |
+|----------|-------|
+| identity | Required, max 255 characters |
+| goal     | Required, max 255 characters |
+
+**Response (201 Created):**
+
+```json
+{
+  "identity": "secondary school student",
+  "goal": "full A* in physics"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — missing or invalid fields, or identity already exists (use PATCH to update)
+- `403 Forbidden` — no JWT token or invalid token provided
+
+---
+
+### `PATCH /api/user/identity`
+
+Edit the authenticated user's identity and goal. Requires authentication. Fails if no identity exists. At least one field must be provided.
+
+**Request:**
+
+```json
+{
+  "identity": "undergraduate"
+}
+```
+
+| Field    | Rules |
+|----------|-------|
+| identity | Optional, max 255 characters |
+| goal     | Optional, max 255 characters |
+
+Omitted fields are left unchanged.
+
+**Response (200 OK):**
+
+```json
+{
+  "identity": "undergraduate",
+  "goal": "full A* in physics"
+}
+```
+
+**Errors:**
+
+- `400 Bad Request` — no fields provided, invalid field values, or identity not found (use POST to create)
+- `403 Forbidden` — no JWT token or invalid token provided
