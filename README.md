@@ -136,3 +136,45 @@ Echoes back the original request body so the frontend can verify creation.
 
 - `400 Bad Request` — missing or invalid fields, invalid datetime format, or tag name exceeds 50 characters
 - `403 Forbidden` — no JWT token provided
+
+---
+
+### `GET /api/events`
+
+Retrieve events within a time range. Requires authentication.
+
+**Query Parameters:**
+
+| Parameter | Type   | Description |
+|-----------|--------|-------------|
+| `start`   | String | Start datetime in ISO 8601 format (`YYYY-MM-DDTHH:mm:ss`) |
+| `length`  | Int    | Number of months from the start date defining the end date |
+
+**Example:** `GET /api/events?start=2000-01-01T00:00:00&length=12`
+
+Returns events from 2000-01-01 (inclusive) to 2001-01-01 (exclusive).
+
+**Response (200 OK):**
+
+```json
+{
+  "events": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Study Session",
+      "datetime": "2026-04-01T14:00:00",
+      "description": "Review algorithms",
+      "tags": ["math", "study"],
+      "createdAt": "2026-03-28T10:00:00"
+    }
+  ],
+  "total": 1
+}
+```
+
+Events are sorted by datetime in ascending order.
+
+**Errors:**
+
+- `400 Bad Request` — invalid `start` datetime format (must be valid ISO 8601)
+- `403 Forbidden` — no JWT token provided

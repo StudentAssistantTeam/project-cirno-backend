@@ -25,7 +25,7 @@ data class CreateEventRequest(
 )
 
 /**
- * Response: returned on successful event creation.
+ * Response: single event returned in GET /api/events results.
  */
 data class EventResponse(
     val id: UUID,
@@ -34,4 +34,11 @@ data class EventResponse(
     val description: String?,
     val tags: List<String>,
     val createdAt: String
+)
+
+/**
+ * Response: GET /api/events
+ */
+data class EventsResponse(
+    val events: List<EventResponse>
 )

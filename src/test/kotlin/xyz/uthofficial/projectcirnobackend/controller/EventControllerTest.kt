@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -260,5 +261,83 @@ class EventControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(request))
             .andExpect(status().isBadRequest)
+    }
+
+    // --- GET /api/events tests ---
+
+    private fun createEvent(token: String, name: String, datetime: String, tags: List<String> = emptyList()) {
+        val tagsJson = if (tags.isNotEmpty()) """, "tags": ${objectMapper.writeValueAsString(tags)}""" else ""
+        val body = """{"name": "$name", "datetime": "$datetime"$tagsJson}"""
+        mockMvc.perform(post("/api/events")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body))
+            .andExpect(status().isCreated)
+    }
+
+    @Test
+    fun `should return 403 when getting events without auth`() {
+        mockMvc.perform(get("/api/events")
+            .param("start", "2026-01-01T00:00:00")
+            .param("length", "1"))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `should return events within time range`() {
+        val token = signupAndLogin()
+        createEvent(token, "Jan Event", "2026-01-15T10:00:00")
+        createEvent(token, "Feb Event", "2026-02-15T10:00:00")
+        createEvent(token, "Mar Event", "2026-03-15T10:00:00", listOf("math"))
+
+        mockMvc.perform(get("/api/events")
+            .header("Authorization", "Bearer $token")
+            .param("start", "2026-01-01T00:00:00")
+            .param("length", "2"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.events.length()").value(2))
+            .andExpect(jsonPath("$.events[0].name").value("Jan Event"))
+            .andExpect(jsonPath("$.events[0].tags").isArray)
+            .andExpect(jsonPath("$.events[1].name").value("Feb Event"))
+    }
+
+    @Test
+    fun `should return empty list when no events in range`() {
+        val token = signupAndLogin()
+        createEvent(token, "Summer Event", "2026-07-01T10:00:00")
+
+        mockMvc.perform(get("/api/events")
+            .header("Authorization", "Bearer $token")
+            .param("start", "2026-01-01T00:00:00")
+            .param("length", "3"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.events.length()").value(0))
+    }
+
+    @Test
+    fun `should return 400 when start format is invalid`() {
+        val token = signupAndLogin()
+
+        mockMvc.perform(get("/api/events")
+            .header("Authorization", "Bearer $token")
+            .param("start", "not-a-date")
+            .param("length", "1"))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should only return events for the authenticated user`() {
+        val token1 = signupAndLogin("user1", "user1@example.com")
+        val token2 = signupAndLogin("user2", "user2@example.com")
+        createEvent(token1, "User1 Event", "2026-02-15T10:00:00")
+        createEvent(token2, "User2 Event", "2026-02-16T10:00:00")
+
+        mockMvc.perform(get("/api/events")
+            .header("Authorization", "Bearer $token1")
+            .param("start", "2026-01-01T00:00:00")
+            .param("length", "12"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.events.length()").value(1))
+            .andExpect(jsonPath("$.events[0].name").value("User1 Event"))
     }
 }

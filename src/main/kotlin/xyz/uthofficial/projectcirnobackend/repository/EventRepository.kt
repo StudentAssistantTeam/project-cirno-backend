@@ -1,7 +1,14 @@
 package xyz.uthofficial.projectcirnobackend.repository
 
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.springframework.stereotype.Repository
 import xyz.uthofficial.projectcirnobackend.dto.CreateEventRequest
@@ -35,20 +42,17 @@ class EventRepository {
             throw IllegalArgumentException("Invalid datetime format. Expected ISO 8601 (e.g. 2026-04-01T14:00:00)")
         }
 
-        // Deduplicate tag names, filter blanks, enforce 50-char limit
         val tagNames = request.tags
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .distinct()
             .take(50)
 
-        // Find or create tags
         val tagEntities = tagNames.map { name ->
             val existing = Tag.find { Tags.name eq name }.singleOrNull()
             existing ?: Tag.new { this.name = name }
         }
 
-        // Create event (set timestamps manually since SQLite defaultExpression may not return values)
         val now = LocalDateTime.now()
         val event = Event.new {
             this.user = user.id
@@ -59,7 +63,6 @@ class EventRepository {
             this.updatedAt = now
         }
 
-        // Link tags via join table
         for (tag in tagEntities) {
             EventTags.insert {
                 it[EventTags.event] = event.id
@@ -75,5 +78,43 @@ class EventRepository {
             tags = tagEntities.map { it.name },
             createdAt = event.createdAt.format(isoFormatter)
         )
+    }
+
+    /**
+     * Returns all events for [userId] whose datetime falls within [start, start + length months).
+     */
+    fun getEventsByTimeRange(userId: UUID, start: String, lengthMonths: Int): List<EventRecord> = transaction {
+        val startLdt = try {
+            LocalDateTime.parse(start, isoFormatter)
+        } catch (e: DateTimeParseException) {
+            throw IllegalArgumentException("Invalid start datetime format. Expected ISO 8601 (e.g. 2026-04-01T00:00:00)")
+        }
+
+        val endLdt = startLdt.plusMonths(lengthMonths.toLong())
+
+        val query = Events.selectAll()
+            .andWhere { Events.user eq userId }
+            .andWhere { Events.datetime greaterEq startLdt }
+            .andWhere { Events.datetime less endLdt }
+            .orderBy(Events.datetime to SortOrder.ASC)
+
+        query.map { row: ResultRow ->
+            val event = Event.wrapRow(row)
+            val eventId = event.id.value
+
+            val tagRows = (EventTags innerJoin Tags)
+                .selectAll()
+                .where { EventTags.event eq event.id }
+                .map { row2: ResultRow -> row2[Tags.name] }
+
+            EventRecord(
+                id = eventId,
+                name = event.name,
+                datetime = event.datetime.format(isoFormatter),
+                description = event.description,
+                tags = tagRows,
+                createdAt = event.createdAt.format(isoFormatter)
+            )
+        }
     }
 }
