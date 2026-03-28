@@ -2,8 +2,6 @@ package xyz.uthofficial.projectcirnobackend.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -14,31 +12,12 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.cors.CorsConfiguration
-import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import xyz.uthofficial.projectcirnobackend.security.JwtAuthenticationFilter
 
-@ConfigurationProperties(prefix = "app.cors")
-data class CorsProperties(
-    val allowedOrigins: List<String> = listOf("http://localhost:3000")
-)
-
-/**
- * Spring Security configuration for the application.
- *
- * Defines the HTTP security filter chain, password encoder, and authentication
- * manager bean. The application operates in a stateless session mode
- * designed for JWT-based authentication. No server-side session is created.
- *
- * Access rules:
- * - "/api/auth/" is public (signup, login).
- * - "/swagger-ui/", "/v3/api-docs/" is public (API docs).
- * - Everything else requires authentication (valid JWT).
- */
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(CorsProperties::class)
-class SecurityConfig(private val corsProperties: CorsProperties) {
+class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilter) {
 
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
@@ -48,9 +27,12 @@ class SecurityConfig(private val corsProperties: CorsProperties) {
         config.authenticationManager
 
     @Bean
-    fun corsConfigurationSource(): CorsConfigurationSource {
+    fun corsConfigurationSource(): UrlBasedCorsConfigurationSource {
         val configuration = CorsConfiguration()
-        configuration.allowedOrigins = corsProperties.allowedOrigins
+        configuration.allowedOrigins = listOf(
+            "http://localhost:3000",
+            "http://64.49.47.22:57177"
+        )
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         configuration.allowedHeaders = listOf("*")
         configuration.allowCredentials = true
@@ -60,12 +42,9 @@ class SecurityConfig(private val corsProperties: CorsProperties) {
     }
 
     @Bean
-    fun securityFilterChain(
-        http: HttpSecurity,
-        jwtAuthenticationFilter: JwtAuthenticationFilter
-    ): SecurityFilterChain {
+    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         http
-            .cors { it.configurationSource(corsConfigurationSource()) }
+            .cors {}
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)

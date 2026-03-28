@@ -9,7 +9,3 @@ app:
   jwt:
     secret: Y2lybm8tc2VjcmV0LWtleS1mb3Itand0LXRva2VuLXNpZ25pbmctMjAyNg==
     expiration-ms: 86400000
-  cors:
-    allowed-origins:
-      - http://localhost:3000
-      - http://64.49.47.22:57177
