@@ -74,6 +74,18 @@ class ChatController(
                     chatSessionService.appendAssistantMessage(request.sessionId, responseBuilder.toString())
                 }
             }
+            .onErrorResume { error ->
+                logger.error("LLM streaming error for session ${request.sessionId}: ${error.message}", error)
+                val errorMessage = if (error.message != null) escapeJson(error.message!!) else "An unexpected error occurred"
+                Flux.just(
+                    ServerSentEvent.builder("""{"type":"error","content":"$errorMessage"}""").build(),
+                    ServerSentEvent.builder("""{"type":"done"}""").build()
+                )
+            }
+    }
+
+    companion object {
+        private val logger = org.slf4j.LoggerFactory.getLogger(ChatController::class.java)
     }
 
     private fun escapeJson(text: String): String {
