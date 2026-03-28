@@ -5,6 +5,8 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import xyz.uthofficial.projectcirnobackend.entity.ChatMessages
+import xyz.uthofficial.projectcirnobackend.entity.ChatSessions
 import xyz.uthofficial.projectcirnobackend.entity.Events
 import xyz.uthofficial.projectcirnobackend.entity.EventTags
 import xyz.uthofficial.projectcirnobackend.entity.Tags
@@ -24,7 +26,7 @@ class AppDatabaseConfig {
     @Bean
     fun initDatabase(): ApplicationRunner = ApplicationRunner {
         transaction {
-            SchemaUtils.createMissingTablesAndColumns(Users, Events, Tags, EventTags)
+            SchemaUtils.createMissingTablesAndColumns(Users, Events, Tags, EventTags, ChatSessions, ChatMessages)
         }
     }
 }

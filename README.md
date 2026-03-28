@@ -258,6 +258,130 @@ Delete an event and its tag associations. Requires authentication. Only the even
 
 ---
 
+### `POST /api/agent/chat`
+
+Chat with the Cirno AI assistant. Requires authentication. Streams responses via Server-Sent Events (SSE).
+
+`sessionId` is optional — omit it (or send `null`) to start a new session. The first SSE event returns the session ID so the frontend can track it.
+
+**Request:**
+
+```json
+{
+  "message": "What events do I have tomorrow?",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+| Field     | Rules |
+|-----------|-------|
+| message   | Required, the user's message |
+| sessionId | Optional, UUID of an existing session. Omit to create a new one. |
+
+**Response (SSE stream):**
+
+The response is streamed as Server-Sent Events with `Content-Type: text/event-stream`. Each event carries a JSON `data` field:
+
+| Event type | Description |
+|------------|-------------|
+| `session`  | The session UUID (first event, so the frontend can store it) |
+| `text`     | The LLM's response text |
+| `error`    | Error message (if something went wrong) |
+| `done`     | Signals the stream is complete |
+
+**Example events:**
+
+```
+data: {"type":"session","content":"550e8400-e29b-41d4-a716-446655440000"}
+
+data: {"type":"text","content":"You have 2 events tomorrow: ..."}
+
+data: {"type":"done"}
+```
+
+**Errors:**
+
+- `400 Bad Request` — missing `message` field
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `GET /api/agent/sessions`
+
+List the authenticated user's chat sessions, ordered by most recently updated. Each session includes a preview of the last message (truncated to ~80 characters).
+
+**Response (200 OK):**
+
+```json
+{
+  "sessions": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "What events do I have tomorrow?",
+      "createdAt": "2026-03-28T10:00:00",
+      "updatedAt": "2026-03-28T10:05:00",
+      "lastMessagePreview": "You have 2 events tomorrow..."
+    }
+  ]
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| id | Session UUID |
+| title | Auto-generated from the first user message (truncated to 50 chars) |
+| createdAt | Session creation time (ISO 8601) |
+| updatedAt | Last message time (ISO 8601) |
+| lastMessagePreview | Truncated content of the last message, or `null` if empty |
+
+**Errors:**
+
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `GET /api/agent/sessions/{id}`
+
+Retrieve the full message history for a chat session. Requires authentication.
+
+**Response (200 OK):**
+
+```json
+{
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "messages": [
+    { "role": "user", "content": "What events do I have tomorrow?", "createdAt": "2026-03-28T10:00:00" },
+    { "role": "assistant", "content": "You have 2 events tomorrow: ...", "createdAt": "2026-03-28T10:00:05" }
+  ]
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| role | Message role: `user`, `assistant`, or `system` |
+| content | Message text |
+| createdAt | Timestamp (ISO 8601) |
+
+**Errors:**
+
+- `403 Forbidden` — no JWT token provided
+
+---
+
+### `DELETE /api/agent/sessions/{id}`
+
+Delete a chat session and all its messages. Requires authentication. Only the session's owner can delete it.
+
+**Response (200 OK):**
+
+Empty body.
+
+**Errors:**
+
+- `403 Forbidden` — no JWT token provided, or session belongs to another user
+
+---
+
 ### `GET /api/health`
 
 Unauthenticated health check. Use this to verify server reachability.

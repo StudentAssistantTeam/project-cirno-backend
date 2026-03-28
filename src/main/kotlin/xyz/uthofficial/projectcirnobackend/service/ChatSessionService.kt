@@ -4,48 +4,56 @@ import org.springframework.ai.chat.messages.AssistantMessage
 import org.springframework.ai.chat.messages.Message
 import org.springframework.ai.chat.messages.UserMessage
 import org.springframework.stereotype.Service
-import java.util.concurrent.ConcurrentHashMap
+import xyz.uthofficial.projectcirnobackend.dto.ChatMessageItem
+import xyz.uthofficial.projectcirnobackend.dto.ChatSessionListItem
+import xyz.uthofficial.projectcirnobackend.repository.ChatSessionRepository
+import java.util.UUID
 
 @Service
-class ChatSessionService {
+class ChatSessionService(
+    private val chatSessionRepository: ChatSessionRepository
+) {
 
-    private val sessions = ConcurrentHashMap<String, MutableList<Message>>()
-    private val maxSessions = 100
-    private val maxMessagesPerSession = 20
-
-    fun getHistory(sessionId: String): List<Message> {
-        return sessions[sessionId]?.toList() ?: emptyList()
-    }
-
-    fun appendUserMessage(sessionId: String, content: String) {
-        getOrCreate(sessionId).add(UserMessage(content))
-    }
-
-    fun appendAssistantMessage(sessionId: String, content: String) {
-        getOrCreate(sessionId).add(AssistantMessage(content))
-    }
-
-    fun clearSession(sessionId: String) {
-        sessions.remove(sessionId)
-    }
-
-    private fun getOrCreate(sessionId: String): MutableList<Message> {
-        return sessions.getOrPut(sessionId) {
-            evictIfNeeded()
-            mutableListOf()
+    /**
+     * Returns the session UUID and existing message history.
+     * If [sessionId] is null, creates a new session for the user.
+     */
+    fun getOrCreateSession(sessionId: UUID?, userId: UUID): Pair<UUID, List<Message>> {
+        if (sessionId != null) {
+            if (!chatSessionRepository.sessionBelongsToUser(sessionId, userId)) {
+                throw IllegalArgumentException("Session not found")
+            }
+            val history = chatSessionRepository.getMessagesAsSpringAi(sessionId)
+            return sessionId to history
         }
+        val newId = chatSessionRepository.createSession(userId)
+        return newId to emptyList()
     }
 
-    private fun evictIfNeeded() {
-        if (sessions.size >= maxSessions) {
-            val oldest = sessions.keys.firstOrNull()
-            if (oldest != null) sessions.remove(oldest)
-        }
+    fun appendUserMessage(sessionId: UUID, content: String) {
+        chatSessionRepository.appendMessages(sessionId, listOf(UserMessage(content)))
     }
 
-    private fun trimHistory(messages: MutableList<Message>) {
-        while (messages.size > maxMessagesPerSession) {
-            messages.removeAt(1) // keep index 0 (system message slot) if present
+    fun appendAssistantMessage(sessionId: UUID, content: String) {
+        chatSessionRepository.appendMessages(sessionId, listOf(AssistantMessage(content)))
+    }
+
+    fun clearSession(sessionId: UUID) {
+        chatSessionRepository.deleteSession(sessionId)
+    }
+
+    fun getSessionsByUser(userId: UUID): List<ChatSessionListItem> {
+        return chatSessionRepository.getSessionsByUser(userId)
+    }
+
+    fun getHistory(sessionId: UUID): List<ChatMessageItem> {
+        return chatSessionRepository.getMessages(sessionId)
+    }
+
+    fun deleteSession(sessionId: UUID, userId: UUID) {
+        if (!chatSessionRepository.sessionBelongsToUser(sessionId, userId)) {
+            throw IllegalArgumentException("Session not found")
         }
+        chatSessionRepository.deleteSession(sessionId)
     }
 }
